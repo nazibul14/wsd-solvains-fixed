@@ -67,9 +67,9 @@ class InstrumentListService
       int $showProfits,
       $structureId
     ): array {
-        $rootPath = realpath(__DIR__ . '/../../../../');
-        $dataFile = '/data/source/instruments-data.json';
-        $propertiesFile = '/data/source/instruments-properties.json';
+        $rootPath = realpath(__DIR__ . '/../../../../../');
+        $dataFile = $rootPath. '/data/source/instruments-data.json';
+        $propertiesFile = $rootPath. '/data/source/instruments-properties.json';
 //        echo $dataFile; exit;
 
         if (!file_exists($dataFile) || !file_exists($propertiesFile)) {
@@ -81,12 +81,12 @@ class InstrumentListService
         $dataContent = json_decode(file_get_contents($dataFile), true);
         $propertiesContent = json_decode(file_get_contents($propertiesFile), true);
 
-        $merged = [];
+        $merged_json = [];
 
         foreach ($dataContent['data'] as $entry) {
             foreach ($entry['instruments'] as $instrument) {
                 $isin = $instrument['isin'];
-                $merged[$isin] = [
+                $merged_json[$isin] = [
                   'isin'      => $isin,
                   'quantity'  => $instrument['properties']['quantity'] ?? null,
                   'structure' => $instrument['properties']['structure'] ?? null,
@@ -96,15 +96,15 @@ class InstrumentListService
 
         foreach ($propertiesContent['instruments'] as $instrumentEntry) {
             foreach ($instrumentEntry as $isin => $details) {
-                if (isset($merged[$isin])) {
-                    $merged[$isin] = array_merge($merged[$isin], $details);
+                if (isset($merged_json[$isin])) {
+                    $merged_json[$isin] = array_merge($merged_json[$isin], $details);
                 } else {
-                    $merged[$isin] = $details;
+                    $merged_json[$isin] = $details;
                 }
             }
         }
 
-        return $merged;
+        return $merged_json;
     }
 
 }
