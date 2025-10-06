@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Application\Controller\IndexController;
 use Application\Controller\ListController;
+use Application\Controller\PortfolioController;
 use Application\Module;
 use Laminas\Router\Http\Literal;
 
@@ -55,5 +56,17 @@ return [
                 'action' => 'null-ratio',
             ],
         ],
+    ],
+    'instrument-portfolio' => [
+      'type' => \Laminas\Router\Http\Segment::class,
+      'priority' => Module::ROUTE_PRIORITY_MED,
+      'options' => [
+        'route' => '/portfolio',
+        'defaults' => [
+            /** @link \Application\Controller\PortfolioController::portfolioAction() */
+            'controller' => PortfolioController::class,
+            'action' => 'portfolio',
+        ],
+      ],
     ],
 ];

@@ -5,6 +5,7 @@ namespace Application;
 
 use Application\Controller\IndexController;
 use Application\Controller\ListController;
+use Application\Controller\PortfolioController;
 use Application\Domain\Environment;
 use Application\Services\Instrument\InstrumentListService;
 use Application\View\Model\AppJsonModel;
@@ -60,6 +61,9 @@ final class Module implements \Laminas\ModuleManager\Feature\ConfigProviderInter
                     },
                     ListController::class => static function (ContainerInterface $container) {
                         return new ListController($container->get(InstrumentListService::class));
+                    },
+                    PortfolioController::class => static function (ContainerInterface $container) {
+                        return new PortfolioController($container->get(InstrumentListService::class));
                     },
                 ],
             ],

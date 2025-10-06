@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Application\Services\Instrument;
@@ -10,6 +11,7 @@ use Application\Util\DatetimeUtil;
 
 class InstrumentListService
 {
+
     /**
      * @var InstrumentsPersistence
      */
@@ -17,9 +19,8 @@ class InstrumentListService
 
 
     public function __construct(
-        InstrumentsPersistence $persistence
-    )
-    {
+      InstrumentsPersistence $persistence
+    ) {
         $this->persistence = $persistence;
     }
 
@@ -34,14 +35,14 @@ class InstrumentListService
      * @throws MongodbException
      */
     public function expiredInstrumentsBefore(
-        int $limit,
-        int $skip,
-        \DateTime $expiredBefore,
-        ?float    $bidIsAtLeast
-    ): array
-    {
+      int $limit,
+      int $skip,
+      \DateTime $expiredBefore,
+      ?float $bidIsAtLeast
+    ): array {
         $filter = [];
-        $filter[InstrumentObject::expiry] = ['$lt' => DatetimeUtil::toMongodbUtcDateTime($expiredBefore)];
+        $filter[InstrumentObject::expiry]
+          = ['$lt' => DatetimeUtil::toMongodbUtcDateTime($expiredBefore)];
         if ($bidIsAtLeast !== null) {
             $filter[InstrumentObject::bid] = ['$gte' => $bidIsAtLeast];
         }
@@ -54,13 +55,56 @@ class InstrumentListService
         $instruments = [];
         foreach ($documentsCursor as $mongoDocument) {
             try {
-                $instruments[] = InstrumentObject::fromMongoDocument($mongoDocument);
-            }
-            catch (InvalidInstrumentValueException $exception) {
-
+                $instruments[]
+                  = InstrumentObject::fromMongoDocument($mongoDocument);
+            } catch (InvalidInstrumentValueException $exception) {
             }
         }
         return $instruments;
+    }
+
+    public function allInstrumentsPortfolio(
+      int $showProfits,
+      $structureId
+    ): array {
+        $rootPath = realpath(__DIR__ . '/../../../../');
+        $dataFile = '/data/source/instruments-data.json';
+        $propertiesFile = '/data/source/instruments-properties.json';
+//        echo $dataFile; exit;
+
+        if (!file_exists($dataFile) || !file_exists($propertiesFile)) {
+            return [
+              'error' => 'One or both data files are missing.',
+            ];
+        }
+
+        $dataContent = json_decode(file_get_contents($dataFile), true);
+        $propertiesContent = json_decode(file_get_contents($propertiesFile), true);
+
+        $merged = [];
+
+        foreach ($dataContent['data'] as $entry) {
+            foreach ($entry['instruments'] as $instrument) {
+                $isin = $instrument['isin'];
+                $merged[$isin] = [
+                  'isin'      => $isin,
+                  'quantity'  => $instrument['properties']['quantity'] ?? null,
+                  'structure' => $instrument['properties']['structure'] ?? null,
+                ];
+            }
+        }
+
+        foreach ($propertiesContent['instruments'] as $instrumentEntry) {
+            foreach ($instrumentEntry as $isin => $details) {
+                if (isset($merged[$isin])) {
+                    $merged[$isin] = array_merge($merged[$isin], $details);
+                } else {
+                    $merged[$isin] = $details;
+                }
+            }
+        }
+
+        return $merged;
     }
 
 }
