@@ -65,46 +65,66 @@ class InstrumentListService
 
     public function allInstrumentsPortfolio(
       int $showProfits,
-      $structureId
+      int $structureId
     ): array {
-        $rootPath = realpath(__DIR__ . '/../../../../../');
-        $dataFile = $rootPath. '/data/source/instruments-data.json';
-        $propertiesFile = $rootPath. '/data/source/instruments-properties.json';
-//        echo $dataFile; exit;
+        try {
+            $rootPath = realpath(__DIR__ . '/../../../../../');
+            $dataFile = $rootPath . '/data/source/instruments-data.json';
+            $propertiesFile = $rootPath
+              . '/data/source/instruments-properties.json';
+            //        echo $dataFile; exit;
 
-        if (!file_exists($dataFile) || !file_exists($propertiesFile)) {
-            return [
-              'error' => 'One or both data files are missing.',
-            ];
-        }
-
-        $dataContent = json_decode(file_get_contents($dataFile), true);
-        $propertiesContent = json_decode(file_get_contents($propertiesFile), true);
-
-        $merged_json = [];
-
-        foreach ($dataContent['data'] as $entry) {
-            foreach ($entry['instruments'] as $instrument) {
-                $isin = $instrument['isin'];
-                $merged_json[$isin] = [
-                  'isin'      => $isin,
-                  'quantity'  => $instrument['properties']['quantity'] ?? null,
-                  'structure' => $instrument['properties']['structure'] ?? null,
+            if (!file_exists($dataFile) || !file_exists($propertiesFile)) {
+                return [
+                  'error' => 'One or both data files are missing.',
                 ];
             }
-        }
 
-        foreach ($propertiesContent['instruments'] as $instrumentEntry) {
-            foreach ($instrumentEntry as $isin => $details) {
-                if (isset($merged_json[$isin])) {
-                    $merged_json[$isin] = array_merge($merged_json[$isin], $details);
-                } else {
-                    $merged_json[$isin] = $details;
+            $dataContent = json_decode(file_get_contents($dataFile), true);
+            $propertiesContent = json_decode(file_get_contents($propertiesFile),
+              true);
+
+            $merged_json = [];
+
+            foreach ($dataContent['data'] as $entry) {
+                foreach ($entry['instruments'] as $instrument) {
+                    $isin = $instrument['isin'];
+                    $structure = $instrument['properties']['structure'] ??
+                      -1;
+                    if ($structureId < 0 || $structureId == $structure) {
+                        $merged_json[$isin] = ['isin'=> $isin];
+                        $merged_json[$isin] = array_merge($merged_json[$isin],
+                          $instrument['properties']);
+                    }
                 }
             }
-        }
 
-        return $merged_json;
+            foreach ($propertiesContent['instruments'] as $instrumentEntry) {
+                foreach ($instrumentEntry as $isin => $details) {
+                    if ($showProfits == 1
+                      && !empty($details['currentSellPrice'])
+                      && !empty($details['currentBuyPrice'])
+                    ) {
+                        $details["profit"] = (int)$details['currentSellPrice']
+                          - (int)$details['currentBuyPrice'];
+
+                        $profit_percent = (int)$details["profit"]
+                          * 100 / (int)$details['currentBuyPrice'];
+                        $profit_percent = round($profit_percent, 2);
+                        $details["profitPercentage"] = $profit_percent . "%";
+                    }
+
+                    if (isset($merged_json[$isin])) {
+                        $merged_json[$isin] = array_merge($merged_json[$isin],
+                          $details);
+                    }
+                }
+            }
+
+            return $merged_json;
+        } catch (\Exception $exception) {
+            throw $exception;
+        }
     }
 
 }

@@ -36,7 +36,7 @@ class PortfolioController extends AbstractActionController
         try {
             $portfollio = $this->instrumentListService->allInstrumentsPortfolio(
               (int) $this->params()->fromQuery('showProfits', 0),
-              $this->params()->fromQuery('structureId', [])
+              (int) $this->params()->fromQuery('structureId', -1)
             );
 
         } catch (\Throwable $exception) {
