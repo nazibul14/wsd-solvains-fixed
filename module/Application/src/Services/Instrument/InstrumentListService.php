@@ -7,6 +7,7 @@ namespace Application\Services\Instrument;
 use Application\Domain\DomainExceptions\MongodbException;
 use Application\Model\InstrumentModel\Exceptions\InvalidInstrumentValueException;
 use Application\Model\InstrumentModel\InstrumentObject;
+use Application\Model\InstrumentModel\InstrumentPortfolioObject;
 use Application\Util\DatetimeUtil;
 
 class InstrumentListService
@@ -72,7 +73,6 @@ class InstrumentListService
             $dataFile = $rootPath . '/data/source/instruments-data.json';
             $propertiesFile = $rootPath
               . '/data/source/instruments-properties.json';
-            //        echo $dataFile; exit;
 
             if (!file_exists($dataFile) || !file_exists($propertiesFile)) {
                 return [
@@ -84,7 +84,7 @@ class InstrumentListService
             $propertiesContent = json_decode(file_get_contents($propertiesFile),
               true);
 
-            $merged_json = [];
+            $instruments = [];
 
             foreach ($dataContent['data'] as $entry) {
                 foreach ($entry['instruments'] as $instrument) {
@@ -92,36 +92,24 @@ class InstrumentListService
                     $structure = $instrument['properties']['structure'] ??
                       -1;
                     if ($structureId < 0 || $structureId == $structure) {
-                        $merged_json[$isin] = ['isin'=> $isin];
-                        $merged_json[$isin] = array_merge($merged_json[$isin],
-                          $instrument['properties']);
+                        $instruments[$isin] = InstrumentPortfolioObject::fromDataFile($instrument);
                     }
                 }
             }
 
             foreach ($propertiesContent['instruments'] as $instrumentEntry) {
                 foreach ($instrumentEntry as $isin => $details) {
-                    if ($showProfits == 1
-                      && !empty($details['currentSellPrice'])
-                      && !empty($details['buyPrice'])
-                    ) {
-                        $details["profit"] = (float)$details['currentSellPrice']
-                          - (float)$details['buyPrice'];
 
-                        $profit_percent = $details["profit"]
-                          * 100 / (float)$details['buyPrice'];
-                        $profit_percent = round($profit_percent, 2);
-                        $details["profitPercentage"] = $profit_percent . "%";
-                    }
-
-                    if (isset($merged_json[$isin])) {
-                        $merged_json[$isin] = array_merge($merged_json[$isin],
-                          $details);
+                    if(isset($instruments[$isin])){
+                        $instruments[$isin]->setPropertiesFromFile($details);
+                        if ($showProfits == 1){
+                            $instruments[$isin]->calculateProfit();
+                        }
                     }
                 }
             }
 
-            return $merged_json;
+            return $instruments;
         } catch (\Exception $exception) {
             throw $exception;
         }
