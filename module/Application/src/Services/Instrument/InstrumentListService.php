@@ -103,13 +103,13 @@ class InstrumentListService
                 foreach ($instrumentEntry as $isin => $details) {
                     if ($showProfits == 1
                       && !empty($details['currentSellPrice'])
-                      && !empty($details['currentBuyPrice'])
+                      && !empty($details['buyPrice'])
                     ) {
-                        $details["profit"] = (int)$details['currentSellPrice']
-                          - (int)$details['currentBuyPrice'];
+                        $details["profit"] = (float)$details['currentSellPrice']
+                          - (float)$details['buyPrice'];
 
-                        $profit_percent = (int)$details["profit"]
-                          * 100 / (int)$details['currentBuyPrice'];
+                        $profit_percent = $details["profit"]
+                          * 100 / (float)$details['buyPrice'];
                         $profit_percent = round($profit_percent, 2);
                         $details["profitPercentage"] = $profit_percent . "%";
                     }
